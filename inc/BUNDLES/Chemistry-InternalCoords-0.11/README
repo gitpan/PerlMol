@@ -1,0 +1,32 @@
+Chemistry/InternalCoords version 0.11
+=====================================
+
+This module converts from internal to cartesian coordinates.
+
+CHANGES SINCE VERSION 0.10
+    - Fixed a bug where the cartesian coordinate of the third atom was not
+      calculated properly when it refered to the first atom instead of the
+      second.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+        "Chemistry::Mol" => "0.20",
+        "Scalar::Util" => 0,
+
+COPYRIGHT AND LICENSE
+
+Copyright (C) 2004 Ivan Tubert
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
+

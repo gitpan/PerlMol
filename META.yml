@@ -1,0 +1,14 @@
+name: PerlMol
+version: 0.2300
+abstract: Perl modules for chemoinformatics and computational chemistry
+author: Ivan Tubert-Brohman <itub@cpan.org>
+license: perl
+distribution_type: module
+requires:
+  perl: 5.6.0
+bundles:
+  Math::VectorReal: Math-VectorReal-1.02
+no_index:
+  directory:
+    - inc
+generated_by: Module::Install version 0.33

@@ -1,0 +1,15 @@
+Atom.pm
+Bond.pm
+Changes
+File.pm
+File/Formula.pm
+MANIFEST
+Makefile.PL
+Mol.pm
+Obj.pm
+README
+Tutorial.pod
+formula_tests.txt
+t/Formula.t
+t/Mol.t
+t/pod.t
