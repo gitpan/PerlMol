@@ -1,0 +1,34 @@
+Revision history for Perl extension Chemistry::File::SMILES
+
+0.40  Wed Jun 16 2004
+        - Added canonicalization (unique SMILES) and aromaticity support.
+
+0.33  Thu Jun 10 2004
+        - Added multiline support.
+
+0.32  Mon May 31 2004
+        - Changed the way disconnected structures are handled. Now "bonds" of 
+          type . (dot) don't produce any bond in the molecule object (previous
+          versions added a bond with order=0).
+
+0.31  Tue May 18 2004
+        - Added missing dependency on Chemistry-Mol-0.22 to Makefile.PL
+        - Added support for a name after the SMILES string.
+
+0.30  Mon May 17 2004
+        - Added write_string (smiles output). Aromatic atoms and disconnected
+          structures are still not properly implemented.
+
+0.21  Mon Mar 1 2004
+        - Distribution renamed to Chemistry::File::SMILES
+        - Use Chemistry::File interface
+        - Some changes in the way charges and h-counts are parsed;
+          (e.g., now -- is converted to -1, H is converted to 1).
+
+0.11  Mon Nov 3 2003
+        - Now the default atom and bond handlers call new_atom and new_bond
+            instead of creating the atom and bond themselves.
+        - Fixed a POD error.
+
+0.10  Fri Sep 6 2003
+	- first release as Chemistry::Smiles
