@@ -1,6 +1,6 @@
 package Chemistry::Pattern;
-$VERSION = '0.25';
-# $Id: Pattern.pm,v 1.18 2004/08/06 01:02:21 itubert Exp $
+$VERSION = '0.26';
+# $Id: Pattern.pm,v 1.19 2005/05/16 22:08:15 itubert Exp $
 
 =head1 NAME
 
@@ -139,7 +139,8 @@ sub reset {
     $self->{already_matched} = {};
     $self->{paint_tab} = {};
     $self->{anchor} = '';
-    $self->next_atom($opts{atom});
+    my $atom = $self->next_atom($opts{atom});
+    #$self->match_local_init($atom) if $atom;
 }
 
 sub already_matched {
@@ -175,16 +176,7 @@ sub next_atom {
         print "\tatom $atom\n" if $DEBUG;
     } 
     
-#    elsif (@{$self->{pending_mols}}) {
-#        my $mol = shift @{$self->{pending_mols}};
-#        print "\tmol $mol\n" if $DEBUG;
-#        $self->map_to($mol);
-#        $self->{pending_atoms} = [$mol->atoms];
-#        $atom = shift @{$self->{pending_atoms}};
-#        print "\tatom $atom\n" if $DEBUG;
-#    }
-
-    $self->match_local_init($atom) if $atom;
+    $self->{next_atom} = $atom;
     $atom;
 }
 
@@ -251,6 +243,7 @@ sub match_next {
     print "match_next\n" if $DEBUG;
 
     while (1) {
+        $self->match_local_init($self->{next_atom}) if $self->{next_atom};
         $match = $self->match_local_next;
         if ($match) {
             if ($self->already_matched($self->atom_map, $self->bond_map)) {
@@ -278,6 +271,7 @@ sub match_local_init {
     $patt->{paint_tab} = {} if ($mol and $patt->{options}{overlap});
     $patt->{stack} = [[0]];
     $patt->{backtrack} = 0;
+    $patt->{next_atom} = 0;
     $patt->{current_atom} = $atom;
 }
 
@@ -458,7 +452,7 @@ sub _flatten {
 
 =head1 VERSION
 
-0.25
+0.26
 
 =head1 SEE ALSO
 
@@ -473,7 +467,7 @@ Ivan Tubert-Brohman E<lt>itub@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert-Brohman. All rights reserved. This program is
+Copyright (c) 2005 Ivan Tubert-Brohman. All rights reserved. This program is
 free software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 

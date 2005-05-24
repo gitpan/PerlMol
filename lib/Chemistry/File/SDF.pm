@@ -1,6 +1,6 @@
 package Chemistry::File::SDF;
-$VERSION = '0.19';
-# $Id: SDF.pm,v 1.8 2005/02/01 01:35:08 itubert Exp $
+$VERSION = '0.20';
+# $Id: SDF.pm,v 1.9 2005/05/20 19:08:45 itubert Exp $
 
 use base "Chemistry::File";
 use Chemistry::Mol;
@@ -58,20 +58,6 @@ information on the line that holds the field name is ignored.
 This module is part of the PerlMol project, L<http://www.perlmol.org>.
 
 =cut
-
-sub parse_string1 {
-    my ($self, $string, %opts) = @_;
-    my @mols;
-
-    $string =~ s/\r\n?/\n/g; # normalize EOL
-    my @mol_strings = split /\$\$\$\$\n/, $string;
-    for my $mol_string (@mol_strings) {
-        my $mol = Chemistry::File::MDLMol->parse_string($mol_string, %opts, _must_override => 0);
-        push @mols, $mol;
-        $self->parse_data($mol, $mol_string);
-    }
-    @mols;
-}
 
 sub slurp_mol {
     my ($self, $fh, %opts) = @_;
@@ -179,7 +165,7 @@ Also note that SDF data field names are considered to be case-sensitive.
 
 =head1 VERSION
 
-0.19
+0.20
 
 =head1 SEE ALSO
 

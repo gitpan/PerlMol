@@ -1,6 +1,6 @@
 package Chemistry::File::Formula;
-$VERSION = '0.32';
-# $Id: Formula.pm,v 1.10 2005/02/24 20:59:35 itubert Exp $
+$VERSION = '0.35';
+# $Id: Formula.pm,v 1.13 2005/05/20 19:01:05 itubert Exp $
 
 use strict;
 use base "Chemistry::File";
@@ -283,7 +283,7 @@ sub ParensBalanced {
 
 =head1 VERSION
 
-0.32
+0.35
 
 =head1 SEE ALSO
 
@@ -296,6 +296,12 @@ The PerlMol website L<http://www.perlmol.org/>
 Ivan Tubert-Brohman <itub@cpan.org>.
 
 Formula parsing code contributed by Brent Gregersen.
+
+=head1 COPYRIGHT
+
+Copyright (c) 2005 Ivan Tubert-Brohman. All rights reserved. This program is
+free software; you can redistribute it and/or modify it under the same terms as
+Perl itself.
 
 =cut
 

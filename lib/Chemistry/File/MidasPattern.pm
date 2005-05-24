@@ -1,6 +1,6 @@
 package Chemistry::File::MidasPattern; 
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 =head1 NAME
 
@@ -59,7 +59,7 @@ sub parse_string {
 
 =head1 VERSION
 
-0.10
+0.11
 
 =head1 SEE ALSO
 
@@ -74,7 +74,7 @@ Ivan Tubert E<lt>itub@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert. All rights reserved. This program is free
+Copyright (c) 2005 Ivan Tubert. All rights reserved. This program is free
 software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 

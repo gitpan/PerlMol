@@ -1,7 +1,7 @@
 package Chemistry::Atom;
 
-$VERSION = '0.32';
-# $Id: Atom.pm,v 1.37 2005/02/24 20:59:33 itubert Exp $
+$VERSION = '0.35';
+# $Id: Atom.pm,v 1.41 2005/05/20 19:01:04 itubert Exp $
 
 =head1 NAME
 
@@ -53,6 +53,7 @@ use Math::VectorReal qw(O vector);
 use Math::Trig;
 use Carp;
 use base qw(Chemistry::Obj Exporter);
+use List::Util qw(first);
 
 our @EXPORT_OK = qw(distance angle dihedral angle_deg dihedral_deg);
 our %EXPORT_TAGS = (
@@ -330,6 +331,14 @@ Set or get the formal charge of the atom.
 
 Chemistry::Obj::accessor('formal_charge');
 
+=item $atom->formal_radical($radical)
+
+Set or get the formal radical multiplicity for the atom.
+
+=cut
+
+Chemistry::Obj::accessor('formal_radical');
+
 =item $atom->implicit_hydrogens($h_count)
 
 Set or get the number of implicit hydrogen atoms bonded to the atom.
@@ -369,7 +378,7 @@ it does B<not> generate coordinates for the new atoms.
 
 sub sprout_hydrogens {
     my ($self) = @_;
-    for (1 .. $self->implicit_hydrogens) {
+    for (1 .. $self->implicit_hydrogens || 0) {
         $self->parent->new_bond(
             atoms => [$self, $self->parent->new_atom(symbol => 'H')]);
     }
@@ -385,11 +394,80 @@ atom.
 
 sub collapse_hydrogens {
     my ($self) = @_;
+    no warnings 'uninitialized';
     my $implicit = $self->implicit_hydrogens;
     for my $nei ($self->neighbors) {
         $nei->delete, $implicit++ if $nei->symbol eq 'H';
     }
     $self->implicit_hydrogens($implicit);
+}
+
+my %VALENCE_TABLE = (
+    Br => 1, Cl => 1, B => 3, C => 4, N => 3, O => 2, P => 3, S => 2, 
+    F => 1, I => 1,
+);
+
+# to make it easier to test
+sub _calc_implicit_hydrogens {
+    my ($self, $symbol, $valence, $charge, $radical) = @_;
+    no warnings 'uninitialized';
+
+    my $h_count = $VALENCE_TABLE{$symbol} - $valence;
+    # should account for non-kekulized aromatic bonds
+
+    # some common charge situations
+    if (($symbol =~ /^[NOS]$/) && $charge == -1) {
+        $h_count--;
+    } elsif ($symbol =~ /^[NOSP]$/ && $charge == 1) {
+        $h_count++;
+    } elsif ($symbol eq 'C' && $charge) {
+        $h_count--;
+    } elsif ($symbol eq 'B' && $charge == -1) {
+        $h_count++;
+    }
+
+    # some common radical situations
+    if ($radical == 1 or $radical == 3) {
+        $h_count -=2;
+    } elsif ($radical == 2) {
+        $h_count--;
+    }
+
+    $h_count = 0 if $h_count < 0;
+    $h_count;
+}
+
+=item $atom->calc_implicit_hydrogens
+
+Use heuristics to figure out how many implicit hydrogens should the atom have
+to satisfy its normal "organic" valence. Returns the number of hydrogens but
+does not affect the atom object.
+
+=cut
+
+sub calc_implicit_hydrogens {
+    my ($self) = @_;
+    $self->_calc_implicit_hydrogens(
+        $self->symbol, $self->explicit_valence, 
+        $self->formal_charge, $self->formal_radical,
+    );
+}
+
+=item $atom->add_implicit_hydrogens
+
+Similar to calc_implicit_hydrogens, but it also sets the number of implicit
+hydrogens in the atom to the new calculated value. Equivalent to
+
+    $atom->implicit_hydrogens($atom->calc_implicit_hydrogens);
+
+It returns the atom object.
+
+=cut
+
+sub add_implicit_hydrogens {
+    my ($self) = @_;
+    my $h_count = $self->calc_implicit_hydrogens;
+    $self->implicit_hydrogens($h_count);
 }
 
 =item $atom->aromatic($bool)
@@ -431,10 +509,12 @@ sub explicit_valence {
     $valence;
 }
 
-# this method is for internal use only; called by $bond->atoms
+# this method is for internal use only; called by $mol->add_bond
 sub add_bond {
     my $self = shift;
     my $bond = shift;
+    my %seen;
+    #return if first { $_ eq $bond } @{$self->{bonds}}; 
 
     for my $atom (@{$bond->{atoms}}){ #for each atom...
         if ($atom ne $self) {
@@ -758,7 +838,7 @@ sub printf {
 
 =head1 VERSION
 
-0.32
+0.35
 
 =head1 SEE ALSO
 
@@ -774,7 +854,7 @@ Ivan Tubert-Brohman E<lt>itub@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert-Brohman. All rights reserved. This program is
+Copyright (c) 2005 Ivan Tubert-Brohman. All rights reserved. This program is
 free software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 

@@ -1,6 +1,6 @@
 package Chemistry::Mol;
-$VERSION = '0.32';
-# $Id: Mol.pm,v 1.44 2005/02/24 20:59:34 itubert Exp $
+$VERSION = '0.35';
+# $Id: Mol.pm,v 1.48 2005/05/20 19:01:04 itubert Exp $
 
 =head1 NAME
 
@@ -27,8 +27,8 @@ only a minimal set of attributes is provided by default, and some attributes
 have very loosely defined meaning. This is because each program and file type
 has different idea of what each concept (such as bond and atom type) means.
 Bonds are defined as a list of atoms (typically two) with an arbitrary type.
-Atoms are defined by a symbol and a Z, and may have 3D and coordinates (2D
-coming soon).
+Atoms are defined by a symbol and a Z, and may have 3D and internal coordinates
+(2D coming soon).
 
 =cut
 
@@ -189,8 +189,11 @@ sub add_bond {
             #croak "Duplicate ID when adding bond '$bond' to mol '$self'";
         #}
         push @{$self->{bonds}}, $bond;
-        $_->add_bond($bond) for $bond->atoms;
         $self->{byId}{$bond->id} = $bond;
+        if ($bond->{deleted}) {
+            $_->add_bond($bond) for $bond->atoms;
+            $bond->{deleted} = 0;
+        }
         $bond->parent($self);
     }
     $_[-1];
@@ -730,8 +733,36 @@ has a pointer to the rest of the universe, the entire universe will be cloned!
 sub clone {
     my ($self) = @_;
     my $clone = dclone $self;
-    $clone->_weaken;
+    $clone->_weaken if Storable->VERSION < 2.14;
+    $clone;
 }
+
+=item my $mol2 = $mol->safe_clone;
+
+Like clone, it makes a deep copy of a molecule. The difference is that the copy
+is not "exact" in that new molecule and its atoms and bonds get assigned new
+IDs. This makes it safe to combine cloned molecules. For example, this is an
+error:
+
+    # XXX don't try this at home!
+    my $mol2 = Chemistry::Mol->combine($mol1, $mol1);
+    # the atoms in $mol1 will clash
+
+But this is ok:
+
+    # the "safe clone" of $mol1 will have new IDs
+    my $mol2 = Chemistry::Mol->combine($mol1, $mol1->safe_clone);
+
+=cut
+
+sub safe_clone {
+    my ($mol) = @_;
+    my $clone = $mol->clone;
+    for ($clone, $clone->atoms, $clone->bonds) {
+        $_->id($_->nextID);
+    }
+    $clone;
+} 
 
 sub _weaken {
     my ($self) = @_;
@@ -879,13 +910,25 @@ sub collapse_hydrogens {
     }
 }
 
+=item $mol->add_implicit_hydrogens
+
+Use heuristics to figure out how many implicit hydrogens should each atom in 
+the molecule have to satisfy its normal "organic" valence.
+
+=cut
+
+sub add_implicit_hydrogens {
+    my ($self) = @_;
+    $_->add_implicit_hydrogens for $self->atoms;
+}
+
 1;
 
 =back
 
 =head1 VERSION
 
-0.32
+0.35
 
 =head1 SEE ALSO
 
@@ -900,7 +943,7 @@ Ivan Tubert-Brohman E<lt>itub@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert-Brohman. All rights reserved. This program is
+Copyright (c) 2005 Ivan Tubert-Brohman. All rights reserved. This program is
 free software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 

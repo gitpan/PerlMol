@@ -1,7 +1,7 @@
 package Chemistry::File::SLN;
 
-$VERSION = "0.10";
-# $Id: SLN.pm,v 1.3 2004/08/11 00:21:25 itubert Exp $
+$VERSION = "0.11";
+# $Id: SLN.pm,v 1.4 2005/03/29 16:38:06 itubert Exp $
 
 use 5.006;
 use strict;
@@ -483,7 +483,8 @@ sub format_bond {
     my ($self, $bond, $opts) = @_;
     return '' unless $bond;
     my $s = $bond->aromatic ? ':' : $ORDER_TO_TYPE{$bond->order};
-    my @attr = $self->format_sln_attr($bond) if $opts->{attr};
+    my @attr;
+    @attr = $self->format_sln_attr($bond) if $opts->{attr};
     if (@attr) {
         $s .= '[' . join(";", @attr) . ']';
     }
@@ -502,7 +503,8 @@ sub format_atom {
     $h_count = $h_count ? ($h_count > 1 ? "H$h_count" : 'H') : '';
 
     $s = $symbol;
-    my @attr = $self->format_sln_attr($atom) if $opts->{attr};
+    my @attr;
+    @attr = $self->format_sln_attr($atom) if $opts->{attr};
     if ($charge or $digit or @attr) {
         $s .= '['; 
         $s .= $digit;
@@ -532,7 +534,7 @@ sub format_sln_attr {
 
 =head1 VERSION
 
-0.10
+0.11
 
 =head1 SEE ALSO
 

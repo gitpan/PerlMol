@@ -1,6 +1,6 @@
 package Chemistry::Ring;
-$VERSION = '0.18';
-#$Id: Ring.pm,v 1.6 2004/08/12 19:48:57 ivan Exp $
+$VERSION = '0.19';
+#$Id: Ring.pm,v 1.1.1.1 2005/03/29 23:57:36 itubert Exp $
 
 =head1 NAME
 
@@ -12,7 +12,8 @@ Chemistry::Ring - Represent a ring as a substructure of a molecule
     
     # already have a molecule in $mol...
     # create a ring with the first six atoms in $mol
-    my $ring = Chemistry::Ring->new(atoms => [$mol->atoms(1 .. 6)]);
+    my $ring = Chemistry::Ring->new;
+    $ring->add_atom($_) for $mol->atoms(1 .. 6);
 
     # find the centroid
     my $vector = $ring->centroid;
@@ -25,6 +26,9 @@ Chemistry::Ring - Represent a ring as a substructure of a molecule
 
     # "aromatize" a molecule
     Chemistry::Ring::aromatize_mol($mol);
+
+    # get the rings involving an atom (after aromatizing)
+    my $rings = $mol->atoms(3)->attr('ring/rings');
 
 =head1 DESCRIPTION
 
@@ -60,8 +64,8 @@ our $DEBUG = 0;
 
 =item Chemistry::Ring->new(name => value, ...)
 
-Create a new Ring object with the specified attributes. 
-The most important attribute is atoms => [].
+Create a new Ring object with the specified attributes. Same as
+C<< Chemistry::Mol->new >>.
 
 =cut
 
@@ -69,6 +73,10 @@ sub nextID {
     "ring".++$N; 
 }
 
+
+# make sure we don't become parent of the atoms added to us
+sub add_atom { shift->SUPER::add_atom_np(@_) }
+sub add_bond { shift->SUPER::add_bond_np(@_) }
 
 sub print {
     my $self = shift;
@@ -175,14 +183,13 @@ explicitly, or all of them by using the ':all' tag.
 Finds all the aromatic rings in the molecule and marks all the atoms and bonds
 in those rings as aromatic. 
 
-It also adds the 'ring/rings' attribute to all ring atoms and bonds; this
-attribute is an array reference containing the list of rings that involve that
-atom or bond. NOTE (the ring/rings attribute is experimental and might change
-in future versions).
+It also adds the 'ring/rings' attribute to the molecule and to all ring atoms
+and bonds; this attribute is an array reference containing the list of rings
+that involve that atom or bond (or all the rings in the case of the molecule).
+NOTE (the ring/rings attribute is experimental and might change in future
+versions).
 
 =cut
-
-# TODO ring/rings will probably create memory leaks
 
 sub aromatize_mol {
     my ($mol) = @_;
@@ -192,6 +199,9 @@ sub aromatize_mol {
     $_->aromatic(0) for ($mol->atoms, $mol->bonds);
 
     my @rings = Chemistry::Ring::Find::find_rings($mol);
+    $mol->attr("ring/rings", \@rings);
+    $_->attr("ring/rings", []) for ($mol->atoms, $mol->bonds);
+
     for my $ring (@rings) {
         if ($ring->is_aromatic) {
             $_->aromatic(1) for ($ring->atoms, $ring->bonds);
@@ -199,6 +209,7 @@ sub aromatize_mol {
         for ($ring->atoms, $ring->bonds) {
             my $ringlist = $_->attr("ring/rings") || [];
             push @$ringlist, $ring;
+            weaken($ringlist->[-1]);
             $_->attr("ring/rings", $ringlist);
         }
     }
@@ -209,7 +220,7 @@ sub aromatize_mol {
 
 =head1 VERSION
 
-0.18
+0.19
 
 =head1 SEE ALSO
 
@@ -222,7 +233,7 @@ Ivan Tubert-Brohman <itub@cpan.org>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert-Brohman. All rights reserved. This program is
+Copyright (c) 2005 Ivan Tubert-Brohman. All rights reserved. This program is
 free software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 

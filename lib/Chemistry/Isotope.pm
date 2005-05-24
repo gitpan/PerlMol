@@ -1,15 +1,16 @@
 package Chemistry::Isotope;
 
-$VERSION = '0.10';
-# $Id: Isotope.pm,v 1.2 2004/11/07 21:21:12 itubert Exp $
+$VERSION = '0.11';
+# $Id: Isotope.pm,v 1.3 2005/05/18 23:14:04 itubert Exp $
 
 use strict;
 use warnings;
 use base qw(Exporter);
-our @EXPORT_OK = qw(isotope_mass);
+our @EXPORT_OK = qw(isotope_mass isotope_abundance);
 our %EXPORT_TAGS = (all => \@EXPORT_OK);
 
 my @masses;
+my %abundances;
 
 sub isotope_mass {
     my ($A, $Z) = @_;
@@ -20,9 +21,21 @@ sub isotope_mass {
 sub read_data {
     local $_;
     while (<DATA>) {
+        last if /^$/;
         my ($A, $Z, $m) = split;
         $masses[$A]{$Z} = $m;
     }
+    while (<DATA>) {
+        my ($symbol, $A, $abundance) = split;
+        $abundances{$symbol}{$A} = $abundance;
+    }
+}
+
+sub isotope_abundance {
+    my ($symbol) = shift;
+    read_data() unless @masses;
+    my %ret = %{$abundances{$symbol} || {}};
+    \%ret;
 }
 
 1;
@@ -33,19 +46,36 @@ Chemistry::Isotope - Table of the isotopes exact mass data
 
 =head1 SYNOPSIS
 
-    use Chemistry::Isotope 'isotope_mass';
+    use Chemistry::Isotope ':all';
 
-    my $m = isotope_mass(235, 92); # 235.043923094753
+    # get the exact atomic mass for an isotope
+    my $m  = isotope_mass(235, 92); # 235.043923094753
+
+    my $ab_table = isotope_abundance('C');
+    while (my ($A, $percent_ab) = each %$ab_table) {
+        print "$A\t$percent_ab\n";
+    }
+    # this should print (the order may vary):
+    # 12    98.93
+    # 13    1.07
 
 =head1 DESCRIPTION
 
 This module contains the exact mass data from the table of the isotopes.
-It has a single exportable function, isotope_mass, which returns the mass
-of an atom in mass units given its mass number (A) and atomic number (Z).
+It has an exportable function, isotope_mass, which returns the mass
+of an atom in mass units given its mass number (A) and atomic number (Z); and
+a function isotope_abundance which returns a table with the natural abundance
+of the isotopes given an element symbol.
 
-The table includes masses for 2931 nuclides and is taken from
+The table of the masses includes 2931 nuclides and is taken from
 L<http://ie.lbl.gov/txt/awm95.txt> (G. Audi and A.H. Wapstra, Nucl. Phys. A595,
 409, 1995)
+
+The table of natural abundances includes 288 nuclides and is taken from
+the Commission on Atomic Weights and Isotopic Abundances report for the
+International Union of Pure and Applied Chemistry in Isotopic Compositions of
+the Elements 1989, Pure and Applied Chemistry, 1998, 70, 217.
+L<http://www.iupac.org/publications/pac/1998/pdf/7001x0217.pdf> 
 
 =head1 FUNCTIONS
 
@@ -54,9 +84,22 @@ L<http://ie.lbl.gov/txt/awm95.txt> (G. Audi and A.H. Wapstra, Nucl. Phys. A595,
 Return the mass for the atom with the given mass number and atomic number, 
 or undef if the nuclide is not in the data table.
 
+=head2 isotope_abundance($symbol)
+
+Returns a hash reference with the natural abundance information for the
+isotopes of a given element. The hash keys are the mass numbers, and the
+values are the abundance percentages. For example, isotope_abundance('C')
+returns the following structure:
+
+    {
+        '13' => '1.07',
+        '12' => '98.93'
+    };
+
+
 =head1 VERSION
 
-0.10
+0.11
 
 =head1 SEE ALSO
 
@@ -70,7 +113,7 @@ Ivan Tubert-Brohman E<lt>itub@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert-Brohman. All rights reserved. This program is
+Copyright (c) 2005 Ivan Tubert-Brohman. All rights reserved. This program is
 free software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 
@@ -3008,3 +3051,292 @@ __DATA__
 272	110	272.14632407446
 272	111	272.1535168206
 273	110	273.1492226438
+
+H	1	99.9885
+H	2	0.0115
+He	3	0.000137
+He	4	99.999863
+Li	6	7.59
+Li	7	92.41
+Be	9	100
+B	10	19.9
+B	11	80.1
+C	12	98.93
+C	13	1.07
+N	14	99.632
+N	15	0.368
+O	16	99.757
+O	17	0.038
+O	18	0.205
+F	19	100
+Ne	20	90.48
+Ne	21	0.27
+Ne	22	9.25
+Na	23	100
+Mg	24	78.99
+Mg	25	10.00
+Mg	26	11.01
+Al	27	100
+Si	28	92.2297
+Si	29	4.6832
+Si	30	3.0872
+P	31	100
+S	32	94.93
+S	33	0.76
+S	34	4.29
+S	36	0.02
+Cl	35	75.78
+Cl	37	24.22
+Ar	36	0.3365
+Ar	38	0.0632
+Ar	40	99.6003
+K	39	93.2581
+K	40	0.0117
+K	41	6.7302
+Ca	40	96.941
+Ca	42	0.647
+Ca	43	0.135
+Ca	44	2.086
+Ca	46	0.004
+Ca	48	0.187
+Sc	45	100
+Ti	46	8.25
+Ti	47	7.44
+Ti	48	73.72
+Ti	49	5.41
+Ti	50	5.18
+V	50	0.250
+V	51	99.750
+Cr	50	4.345
+Cr	52	83.789
+Cr	53	9.501
+Cr	54	2.365
+Mn	55	100
+Fe	54	5.845
+Fe	56	91.754
+Fe	57	2.119
+Fe	58	0.282
+Co	59	100
+Ni	58	68.0769
+Ni	60	26.2231
+Ni	61	1.1399
+Ni	62	3.6345
+Ni	64	0.9256
+Cu	63	69.17
+Cu	65	30.83
+Zn	64	48.63
+Zn	66	27.90
+Zn	67	4.10
+Zn	68	18.75
+Zn	70	0.62
+Ga	69	60.108
+Ga	71	39.892
+Ge	70	20.84
+Ge	72	27.54
+Ge	73	7.73
+Ge	74	36.28
+Ge	76	7.61
+As	75	100
+Se	74	0.89
+Se	76	9.37
+Se	77	7.63
+Se	78	23.77
+Se	80	49.61
+Se	82	8.73
+Br	79	50.69
+Br	81	49.31
+Kr	78	0.35
+Kr	80	2.28
+Kr	82	11.58
+Kr	83	11.49
+Kr	84	57.00
+Kr	86	17.30
+Rb	85	72.17
+Rb	87	27.83
+Sr	84	0.56
+Sr	86	9.86
+Sr	87	7.00
+Sr	88	82.58
+Y	89	100
+Zr	90	51.45
+Zr	91	11.22
+Zr	92	17.15
+Zr	94	17.38
+Zr	96	2.80
+Nb	93	100
+Mo	92	14.84
+Mo	94	9.25
+Mo	95	15.92
+Mo	96	16.68
+Mo	97	9.55
+Mo	98	24.13
+Mo	100	9.63
+Ru	96	5.54
+Ru	98	1.87
+Ru	99	12.76
+Ru	100	12.60
+Ru	101	17.06
+Ru	102	31.55
+Ru	104	18.62
+Rh	103	100
+Pd	102	1.02
+Pd	104	11.14
+Pd	105	22.33
+Pd	106	27.33
+Pd	108	26.46
+Pd	110	11.72
+Ag	107	51.839
+Ag	109	48.161
+Cd	106	1.25
+Cd	108	0.89
+Cd	110	12.49
+Cd	111	12.80
+Cd	112	24.13
+Cd	113	12.22
+Cd	114	28.73
+Cd	116	7.49
+In	113	4.29
+In	115	95.71
+Sn	112	0.97
+Sn	114	0.66
+Sn	115	0.34
+Sn	116	14.54
+Sn	117	7.68
+Sn	118	24.22
+Sn	119	8.59
+Sn	120	32.58
+Sn	122	4.63
+Sn	124	5.79
+Sb	121	57.21
+Sb	123	42.79
+Te	120	0.09
+Te	122	2.55
+Te	123	0.89
+Te	124	4.74
+Te	125	7.07
+Te	126	18.84
+Te	128	31.74
+Te	130	34.08
+I	127	100
+Xe	124	0.09
+Xe	126	0.09
+Xe	128	1.92
+Xe	129	26.44
+Xe	130	4.08
+Xe	131	21.18
+Xe	132	26.89
+Xe	134	10.44
+Xe	136	8.87
+Cs	133	100
+Ba	130	0.106
+Ba	132	0.101
+Ba	134	2.417
+Ba	135	6.592
+Ba	136	7.854
+Ba	137	11.232
+Ba	138	71.698
+La	138	0.090
+La	139	99.910
+Ce	136	0.185
+Ce	138	0.251
+Ce	140	88.450
+Ce	142	11.114
+Pr	141	100
+Nd	142	27.2
+Nd	143	12.2
+Nd	144	23.8
+Nd	145	8.3
+Nd	146	17.2
+Nd	148	5.7
+Nd	150	5.6
+Sm	144	3.07
+Sm	147	14.99
+Sm	148	11.24
+Sm	149	13.82
+Sm	150	7.38
+Sm	152	26.75
+Sm	154	22.75
+Eu	151	47.81
+Eu	153	52.19
+Gd	152	0.20
+Gd	154	2.18
+Gd	155	14.80
+Gd	156	20.47
+Gd	157	15.65
+Gd	158	24.84
+Gd	160	21.86
+Tb	159	100
+Dy	156	0.06
+Dy	158	0.10
+Dy	160	2.34
+Dy	161	18.91
+Dy	162	25.51
+Dy	163	24.90
+Dy	164	28.18
+Ho	165	100
+Er	162	0.14
+Er	164	1.61
+Er	166	33.61
+Er	167	22.93
+Er	168	26.78
+Er	170	14.93
+Tm	169	100
+Yb	168	0.13
+Yb	170	3.04
+Yb	171	14.28
+Yb	172	21.83
+Yb	173	16.13
+Yb	174	31.83
+Yb	176	12.76
+Lu	175	97.41
+Lu	176	2.59
+Hf	174	0.16
+Hf	176	5.26
+Hf	177	18.60
+Hf	178	27.28
+Hf	179	13.62
+Hf	180	35.08
+Ta	180	0.012
+Ta	181	99.988
+W	180	0.12
+W	182	26.50
+W	183	14.31
+W	184	30.64
+W	186	28.43
+Re	185	37.40
+Re	187	62.60
+Os	184	0.02
+Os	186	1.59
+Os	187	1.96
+Os	188	13.24
+Os	189	16.15
+Os	190	26.26
+Os	192	40.78
+Ir	191	37.3
+Ir	193	62.7
+Pt	190	0.014
+Pt	192	0.782
+Pt	194	32.967
+Pt	195	33.832
+Pt	196	25.242
+Pt	198	7.163
+Au	197	100
+Hg	196	0.15
+Hg	198	9.97
+Hg	199	16.87
+Hg	200	23.10
+Hg	201	13.18
+Hg	202	29.86
+Hg	204	6.87
+Tl	203	29.524
+Tl	205	70.476
+Pb	204	1.4
+Pb	206	24.1
+Pb	207	22.1
+Pb	208	52.4
+Bi	209	100
+Th	232	100
+Pa	231	100
+U	234	0.0055
+U	235	0.7200
+U	238	99.2745

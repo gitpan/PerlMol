@@ -1,10 +1,10 @@
 package Chemistry::Pattern::Bond;
-$VERSION = '0.25';
-# $Id: Bond.pm,v 1.9 2004/08/06 01:02:21 itubert Exp $
+$VERSION = '0.26';
+# $Id: Bond.pm,v 1.10 2005/05/16 22:08:15 itubert Exp $
 
 =head1 NAME
 
-Chemistry::Pattern::Bond
+Chemistry::Pattern::Bond - A bond that knows how to match
 
 =head1 SYNOPSIS
 
@@ -88,7 +88,7 @@ sub map_to {
 
 =head1 VERSION
 
-0.25
+0.26
 
 =head1 SEE ALSO
 
@@ -102,7 +102,7 @@ Ivan Tubert-Brohman E<lt>itub@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert-Brohman. All rights reserved. This program is
+Copyright (c) 2005 Ivan Tubert-Brohman. All rights reserved. This program is
 free software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 

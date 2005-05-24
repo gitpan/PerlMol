@@ -1,7 +1,7 @@
 package Chemistry::Ring::Find;
 
-$VERSION = 0.18;
-# $Id: Find.pm,v 1.6 2004/08/12 19:48:57 ivan Exp $
+$VERSION = 0.19;
+# $Id: Find.pm,v 1.1.1.1 2005/03/29 23:57:36 itubert Exp $
 
 =head1 NAME
 
@@ -167,8 +167,8 @@ sub find_ring {
                         next;
                     }
                     my $r = Chemistry::Ring->new;
-                    $r->add_atom_np(@atoms);
-                    $r->add_bond_np(@bonds);
+                    $r->add_atom(@atoms);
+                    $r->add_bond(@bonds);
                     return $r unless $opts{all};  # FOUND VALID RING
                     push @rings, $r;
                     $used_end_nodes{$atoms[-1]} = 1;
@@ -305,7 +305,7 @@ simple rings and some bridged rings. It never finds fused rings (which is good).
 
 =head1 VERSION
 
-0.18
+0.19
 
 =head1 SEE ALSO
 
@@ -317,7 +317,7 @@ Ivan Tubert-Brohman E<lt>itub@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert-Brohman. All rights reserved. This program is
+Copyright (c) 2005 Ivan Tubert-Brohman. All rights reserved. This program is
 free software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 

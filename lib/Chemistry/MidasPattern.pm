@@ -1,8 +1,8 @@
 package Chemistry::MidasPattern;
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
-# $Id: MidasPattern.pm,v 1.2 2004/07/03 01:05:22 itubert Exp $
+# $Id: MidasPattern.pm,v 1.3 2005/05/16 23:03:37 itubert Exp $
 
 =head1 NAME
 
@@ -61,10 +61,11 @@ residues and atoms.
 What follows is not exactly a formal grammar specification, but it should give
 a general idea: 
 
-SELECTOR = ((:RESIDUE)*(@ATOM)*)*
+SELECTOR = ((:RESIDUE(.CHAIN)?)*(@ATOM)*)*
 
-The star here means "zero or more", and the parentheses are used to delimit the
-effect of the star. The : and @ are used verbatim.
+The star here means "zero or more", the question mark means "zero or one", and
+the parentheses are used to delimit the effect of the star. All other
+characters are used verbatim.
 
 RESIDUE can be a name (e.g., LYS), a sequence number (e.g., 108), a range
 (e.g., 1-10), or a comma-separated list of RESIDUEs (e.g. 1-10,6,LYS).
@@ -88,6 +89,7 @@ The result of two or more selectors can be intersected using the & operator.
 =head1 EXAMPLES
 
     :ARG                All arginine atoms
+    :ARG.A              All arginine atoms in chain 'A'
     :ARG@*              All arginine atoms
     @CA                 All alpha carbons
     :*@CA               All alpha carbons
@@ -124,6 +126,7 @@ sub new {
         atom_map => [],
         options  => {},
         matched  => 0,
+        name     => $str,
     }, ref $class || $class;
     $self->parse_midas_pattern($str);
     $self;
@@ -161,6 +164,7 @@ sub parse_midas_pattern {
         my $conditions = [];
         $node->{conditions} = $conditions;
 
+        $str =~ s/\s+//g; # ignore whitespace
         $str = ":*$str" unless $str =~ /^:/; # add implicit "every residue"
         my (undef, @residues) = split ':', $str;# =~ /:([^:]+)/g;
         for my $residue (@residues) {
@@ -170,8 +174,7 @@ sub parse_midas_pattern {
             my $res_node = { residue => \@res };
             push @$conditions, $res_node; 
 
-            my (@atoms) = map { parse_atom($_) } split /[\@,]/, $atom_base||'';
-            @atoms or @atoms = [all => '*'] ; # implicit "every atom"
+            my (@atoms) = map { parse_atom($_) } split /[\@,]/, $atom_base||'*';
             $res_node->{atoms} = \@atoms;
         }
     }
@@ -179,35 +182,52 @@ sub parse_midas_pattern {
 
 sub parse_res {
     my ($s) = @_;
+    $s = lc $s;
+    my $chain_id;
+    my $sub;
+    if ($s =~ s/\.(.)$//) { # chain id
+        $chain_id = $1; 
+    }
     if ($s =~ /^\d+$/) {
-        return [number => $s];
+        $sub = sub {$_->attr('pdb/sequence_number') == $s};
     } elsif ($s =~ /^[a-zA-Z]+$/) {
-        return [name => $s];
+        $sub = sub {lc $_->type eq $s};
     } elsif ($s =~ /^[a-zA-Z=?]+$/) {
         $s =~ s/\?/./g;
         $s =~ s/=/.*/g;
-        return [regex => qr/$s/];
+        $sub = sub {$_->type =~ qr/$s/i};
     } elsif ($s eq '*') {
-        return [all => $s];
+        $sub = sub {1};
     } elsif ($s =~ /^(\d+|\*)-(\d+|\*)/) {
-        return [range => $1, $2];
+        my ($from, $to) = ($1, $2);
+        $from = 0   if $from eq '*';
+        $to   = 1e9 if $to   eq '*';
+        
+        $sub = sub {
+            my $n = $_->attr('pdb/sequence_number'); $n >= $from and $n <= $to
+        };
     } else {
-        croak "invalid residue specification $s\n";
+        croak "Invalid residue specification '$s'\n";
     }
+
+    return $chain_id ? 
+        sub {lc $_->attr('pdb/chain_id') eq $chain_id and $sub->()}
+        : $sub;
 }
 
 sub parse_atom {
     my ($s) = @_;
+    $s = lc $s;
     if ($s =~ /^\d+$/) {
-        return [number => $s];
-    } elsif ($s =~ /^[a-zA-Z0-9=?]+$/) {
+        return sub {$_->attr('pdb/serial_number') == $s};
+    } elsif ($s =~ /^[a-zA-Z0-9='"?]+$/) {
         $s =~ s/\?/./g;
         $s =~ s/=/.*/g;
-        return [regex => qr/^$s$/];
+        return sub {$_->name =~ qr/^$s$/i};
     } elsif ($s eq '*') {
-        return [all => $s];
+        return sub {1};
     } else {
-        croak "invalid atom specification $s\n";
+        croak "Invalid atom specification '$s'\n";
     }
 }
 
@@ -232,42 +252,20 @@ sub match {
             # get the matching residues
             for my $cond (@{$residue_spec->{residue}}) {
                 print "\t\tresidue condition\n" if $DEBUG;        
-                my ($type, @params) = @$cond;
-                if ($type eq 'all') {
-                    push @residues, $mol->domains;
-                } elsif ($type eq 'number') {
-                    push @residues, $mol->domains(@params);
-                } elsif ($type eq 'name') {
-                    push @residues, grep {$_->type eq $params[0]} $mol->domains;
-                } elsif ($type eq 'regex') {
-                    push @residues, grep {$_->type =~ $params[0]} $mol->domains;
-                } elsif ($type eq 'range') {
-                    $params[0] = 1 if $params[0] eq '*';
-                    $params[1] = $mol->domains if $params[1] eq '*';
-                    push @residues, $mol->domains($params[0] .. $params[1]);
-                }
-                if ($self->{options}{unique}) {
-                    my %seen;
-                    @seen{@residues} = @residues;
-                    @residues = values %seen;
-                }
+                push @residues, grep $cond->(), $mol->domains;
             }
+            if ($self->{options}{unique}) {
+                my %seen;
+                @seen{@residues} = @residues;
+                @residues = values %seen;
+            }
+            printf "got %d residues\n", scalar @residues if $DEBUG;
 
             # get the matching atoms
             for my $res (@residues) {
                 for my $cond (@{$residue_spec->{atoms}}) {
                     print "atom_cond\n" if $DEBUG;
-                    my ($type, $param) = @$cond;
-                    push @atoms, grep { 
-                        my $match = 0;
-                        if ($type eq 'regex') {
-                            $match = $_->name =~ $param;
-                        } elsif ($type eq 'all') {
-                            $match = 1;
-                        } elsif ($type eq 'number') {
-                            $match = $_->attr("pdb/serial_number") == $param;
-                        }
-                    } $res->atoms;
+                    push @atoms, grep $cond->(), $res->atoms;
                 }
             }
         }
@@ -325,8 +323,8 @@ sub match {
 =head1 CAVEATS
 
 If a feature does not appear in any of the examples, it is probably not
-implemented. For example, the zr< zone specifier, atom properties, Chimera
-extensions such as chains, etc.
+implemented. For example, the zr< zone specifier, atom properties, and 
+various Chimera extensions.
 
 The zone specifiers (selection by distance) currently use a brute-force N^2
 algorithm. You can optimize an & expression by putting the most unlikely
@@ -348,7 +346,7 @@ Some day, a future version may implement a smarter algorithm...
 
 =head1 VERSION
 
-0.10
+0.11
 
 =head1 SEE ALSO
 
@@ -362,7 +360,7 @@ Ivan Tubert E<lt>itub@cpan.orgE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2004 Ivan Tubert. All rights reserved. This program is free
+Copyright (c) 2005 Ivan Tubert. All rights reserved. This program is free
 software; you can redistribute it and/or modify it under the same terms as
 Perl itself.
 
